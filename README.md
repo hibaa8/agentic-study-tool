@@ -1,9 +1,9 @@
 # FocusOS
 
-A production-quality agentic study/scheduling tool scaffold.
+A useful study tool that allows students to generate a weekly todo-list and arrange their calendar based on their upcoming tasks/projects/exams, etc. Identify important emails and automate replies. Use the research tool in order to create detailed summmaries, knowledge graph, and quizzes for any written material. 
 
 ## Structure
-- **backend**: Node.js + Express + TypeScript + Prisma. Handles Google Auth, Sync, and Agent logic.
+- **backend**: Node.js + Express + TypeScript + Prisma. Handles Google Auth, Sync, and Agent logic. Implemented authentication and allows agent to use Google APIs in order to retrieve data and make changes.
 - **frontend**: React + Vite + TypeScript. UI for Dashboard and Learning.
 - **shared**: Shared Zod schemas and TypeScript types.
 
