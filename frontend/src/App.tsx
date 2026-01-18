@@ -13,7 +13,7 @@ function App() {
             <Routes>
                 <Route path="/login" element={<AuthPage />} />
                 <Route path="/learning" element={<LearningPage />} />
-                <Route path="/email/reply" element={<EmailReplyPage />} />
+                <Route path="/email-reply" element={<EmailReplyPage />} />
                 <Route path="/files" element={<FilesPage />} />
                 <Route path="/" element={<DashboardPage />} />
             </Routes>

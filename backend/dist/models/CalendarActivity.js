@@ -33,20 +33,16 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const mongoController = __importStar(require("../controllers/mongoController"));
-const router = (0, express_1.Router)();
-router.post('/plan', mongoController.savePlan);
-router.post('/summary', mongoController.saveSummary);
-router.post('/learning-session', mongoController.saveLearningSession);
-router.get('/learning-sessions', mongoController.getLearningSessions);
-router.get('/plans', mongoController.getSavedPlans);
-// Task checklist
-router.get('/tasks', mongoController.getTasks);
-router.post('/tasks', mongoController.addTask);
-router.delete('/tasks', mongoController.clearTasks);
-router.put('/tasks/:taskId/toggle', mongoController.toggleTask);
-// Calendar activities
-router.get('/calendar-activities', mongoController.getCalendarActivities);
-router.post('/calendar-activities', mongoController.addCalendarActivity);
-exports.default = router;
+exports.CalendarActivity = void 0;
+const mongoose_1 = __importStar(require("mongoose"));
+const CalendarActivitySchema = new mongoose_1.Schema({
+    userId: { type: String, required: true },
+    eventId: { type: String, required: true },
+    title: { type: String, required: true },
+    start: { type: Date, required: true },
+    end: { type: Date, required: true },
+    addedToCalendar: { type: Boolean, default: false },
+    addedAt: { type: Date },
+    expiresAt: { type: Date },
+});
+exports.CalendarActivity = mongoose_1.default.model('CalendarActivity', CalendarActivitySchema);

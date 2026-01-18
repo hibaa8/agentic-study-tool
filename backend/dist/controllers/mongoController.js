@@ -1,10 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSavedPlans = exports.getLearningSessions = exports.saveLearningSession = exports.saveSummary = exports.savePlan = void 0;
+exports.addCalendarActivity = exports.getCalendarActivities = exports.toggleTask = exports.clearTasks = exports.addTask = exports.getTasks = exports.getSavedPlans = exports.getLearningSessions = exports.saveLearningSession = exports.saveSummary = exports.savePlan = void 0;
 const SavedPlan_1 = require("../models/SavedPlan");
 const SavedSummary_1 = require("../models/SavedSummary");
 const SavedLearningSession_1 = require("../models/SavedLearningSession");
-const getUserId = (req) => req.session?.userId;
+const TaskChecklistItem_1 = require("../models/TaskChecklistItem");
+const CalendarActivity_1 = require("../models/CalendarActivity");
+const getUserId = (req) => {
+    const userId = req.session?.userId;
+    if (!userId) {
+        console.warn('[Mongo] No userId in session!');
+    }
+    return userId;
+};
 const savePlan = async (req, res) => {
     try {
         const userId = getUserId(req);
@@ -86,3 +94,109 @@ const getSavedPlans = async (req, res) => {
     }
 };
 exports.getSavedPlans = getSavedPlans;
+// Task Checklist
+const getTasks = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const tasks = await TaskChecklistItem_1.TaskChecklistItem.find({ userId }).sort({ createdAt: -1 });
+        res.json(tasks);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getTasks = getTasks;
+const addTask = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const { taskId, title, description } = req.body;
+        const task = await TaskChecklistItem_1.TaskChecklistItem.create({
+            userId,
+            taskId,
+            title,
+            description,
+        });
+        res.json({ success: true, task });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.addTask = addTask;
+const clearTasks = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        await TaskChecklistItem_1.TaskChecklistItem.deleteMany({ userId });
+        res.json({ success: true, message: 'Tasks cleared' });
+        console.log(`[Mongo] Cleared tasks for user ${userId}`);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.clearTasks = clearTasks;
+const toggleTask = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const { taskId } = req.params;
+        console.log(`[Mongo] Toggling task: ${taskId} for user: ${userId}`);
+        // Try searching by both _id and manual taskId just in case there's confusion
+        let task = await TaskChecklistItem_1.TaskChecklistItem.findOne({ userId, _id: taskId });
+        if (!task) {
+            task = await TaskChecklistItem_1.TaskChecklistItem.findOne({ userId, taskId: taskId });
+        }
+        if (!task) {
+            console.warn(`[Mongo] Task NOT found: ${taskId} for user: ${userId}`);
+            return res.status(404).json({ error: 'Task not found' });
+        }
+        task.completed = !task.completed;
+        task.completedAt = task.completed ? new Date() : undefined;
+        await task.save();
+        res.json({ success: true, task });
+    }
+    catch (error) {
+        console.error('[Mongo] Toggle error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.toggleTask = toggleTask;
+// Calendar Activities
+const getCalendarActivities = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const now = new Date();
+        // Get activities that haven't expired yet
+        const activities = await CalendarActivity_1.CalendarActivity.find({
+            userId,
+            expiresAt: { $gt: now }
+        }).sort({ addedAt: -1 });
+        res.json(activities);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getCalendarActivities = getCalendarActivities;
+const addCalendarActivity = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const { eventId, title, start, end } = req.body;
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours from now
+        const activity = await CalendarActivity_1.CalendarActivity.create({
+            userId,
+            eventId,
+            title,
+            start: new Date(start),
+            end: new Date(end),
+            addedToCalendar: true,
+            addedAt: new Date(),
+            expiresAt,
+        });
+        res.json({ success: true, activity });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.addCalendarActivity = addCalendarActivity;

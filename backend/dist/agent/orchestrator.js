@@ -4,10 +4,12 @@ exports.triageInbox = exports.generateWeeklyPlan = void 0;
 const db_1 = require("../utils/db");
 const llm_1 = require("./llm");
 const generateWeeklyPlan = async (userId, weekStartDate) => {
+    console.log('[WeeklyPlan] Starting plan generation for:', userId, 'at', weekStartDate);
     // 1. Gather context: Calendar events, Unread emails, Tasks
     const start = new Date(weekStartDate);
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
+    console.log('[WeeklyPlan] Fetching events from', start.toISOString(), 'to', end.toISOString());
     const events = await db_1.prisma.calendarEvent.findMany({
         where: {
             userId,
@@ -17,7 +19,10 @@ const generateWeeklyPlan = async (userId, weekStartDate) => {
             }
         }
     });
+    console.log(`[WeeklyPlan] Found ${events.length} events`);
+    console.log('[WeeklyPlan] Fetching tasks...');
     const tasks = await db_1.prisma.task.findMany({ where: { userId, status: 'todo' } });
+    console.log(`[WeeklyPlan] Found ${tasks.length} tasks`);
     // 2. Construct Prompt
     // 2. Construct Prompt
     console.log(`[WeeklyPlan] Generating plan for ${events.length} events and ${tasks.length} tasks.`);
@@ -103,14 +108,18 @@ const generateWeeklyPlan = async (userId, weekStartDate) => {
 
     Now produce the JSON.
     `;
+    console.log('[WeeklyPlan] Calling Gemini API...');
+    const startTime = Date.now();
     // 3. Call LLM
     const response = await (0, llm_1.callLLM)({
         userPrompt: prompt,
         // systemPrompt: "You are an expert productivity planner." // integrated into prompt
     });
+    console.log(`[WeeklyPlan] Gemini responded in ${Date.now() - startTime}ms`);
     // 4. Validate & Save
     // const plan = WeeklyPlanSchema.parse(response); // Validation disabled for mock simplicity
     const plan = response;
+    console.log('[WeeklyPlan] Saving generated plan to DB...');
     await db_1.prisma.plan.create({
         data: {
             userId,
@@ -118,6 +127,7 @@ const generateWeeklyPlan = async (userId, weekStartDate) => {
             planJson: JSON.stringify(plan)
         }
     });
+    console.log('[WeeklyPlan] Plan generation complete!');
     return plan;
 };
 exports.generateWeeklyPlan = generateWeeklyPlan;

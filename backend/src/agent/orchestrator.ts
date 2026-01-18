@@ -4,11 +4,13 @@ import { WeeklyPlanSchema, TriageResultSchema } from '@focus/shared';
 import { z } from 'zod';
 
 export const generateWeeklyPlan = async (userId: string, weekStartDate: string) => {
+    console.log('[WeeklyPlan] Starting plan generation for:', userId, 'at', weekStartDate);
     // 1. Gather context: Calendar events, Unread emails, Tasks
     const start = new Date(weekStartDate);
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
 
+    console.log('[WeeklyPlan] Fetching events from', start.toISOString(), 'to', end.toISOString());
     const events = await prisma.calendarEvent.findMany({
         where: {
             userId,
@@ -18,7 +20,11 @@ export const generateWeeklyPlan = async (userId: string, weekStartDate: string) 
             }
         }
     });
+    console.log(`[WeeklyPlan] Found ${events.length} events`);
+
+    console.log('[WeeklyPlan] Fetching tasks...');
     const tasks = await prisma.task.findMany({ where: { userId, status: 'todo' } });
+    console.log(`[WeeklyPlan] Found ${tasks.length} tasks`);
 
     // 2. Construct Prompt
     // 2. Construct Prompt
@@ -109,16 +115,20 @@ export const generateWeeklyPlan = async (userId: string, weekStartDate: string) 
     Now produce the JSON.
     `;
 
+    console.log('[WeeklyPlan] Calling Gemini API...');
+    const startTime = Date.now();
     // 3. Call LLM
     const response = await callLLM({
         userPrompt: prompt,
         // systemPrompt: "You are an expert productivity planner." // integrated into prompt
     });
+    console.log(`[WeeklyPlan] Gemini responded in ${Date.now() - startTime}ms`);
 
     // 4. Validate & Save
     // const plan = WeeklyPlanSchema.parse(response); // Validation disabled for mock simplicity
     const plan = response;
 
+    console.log('[WeeklyPlan] Saving generated plan to DB...');
     await prisma.plan.create({
         data: {
             userId,
@@ -127,6 +137,7 @@ export const generateWeeklyPlan = async (userId: string, weekStartDate: string) 
         }
     });
 
+    console.log('[WeeklyPlan] Plan generation complete!');
     return plan;
 };
 
@@ -163,19 +174,20 @@ export const triageInbox = async (userId: string, limit: number = 10) => {
     
     Goals:
     1. **Classify** each email into one of these EXACT categories:
-       - "SPAM": Newsletters, automated alerts (security/login), marketing, promotions, social media notifs.
-         EXCEPTION: NEVER classify emails from "${userEmail}" (self-emails) as SPAM.
-       - "FYI": Receipts, confirmations, informational updates that don't need a reply. Also includes self-emails.
-       - "ACTION": Personal emails, work requests, questions requiring a specific human reply.
+       - "SPAM": Advertisements, marketing, newsletters, promotional offers, security alerts, login notifications, automated receipts, or social media updates.
+         EXCEPTION: NEVER classify emails from "${userEmail}" (self-emails) as SPAM. ANY email that is personal or clearly requires human attention and is NOT a bulk advertisement/automated alert should be ACTION.
+       - "FYI": Informational updates that don't strictly need a reply but are not marketing ads. Also includes self-emails.
+       - "ACTION": Personal emails, specific work requests, direct questions, or any content requiring a human-written specific response.
        
     2. **Draft Reply**:
-       - Format ALL replies with proper email structure:
-         * Greeting (e.g., "Hi [Name]," or "Hello,")
-         * Message body (1-3 paragraphs, context-appropriate)
+       - Format ALL replies with proper email structure and a **FORMAL TONE**:
+         * Greeting (e.g., "Hi [Name]," or "Dear [Name],")
+         * Message body (1-3 paragraphs, formal and context-appropriate)
          * Signature: "Sincerely,\nHiba Altaf"
-       - FOR "ACTION": specific, polite draft reply addressing the email content.
-       - FOR "FYI": brief polite acknowledgement (e.g., "Thanks for the update!").
+       - FOR "ACTION": specific, polite, and formal draft reply addressing the email content.
+       - FOR "FYI": brief formal acknowledgement (e.g., "Thank you for the update. Best regards.").
        - FOR "SPAM": empty string "".
+
        
     Output a valid JSON array strictly matching this schema:
     [

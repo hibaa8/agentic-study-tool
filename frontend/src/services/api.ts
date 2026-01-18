@@ -126,3 +126,55 @@ export async function getSavedPlans() {
     if (!res.ok) throw new Error('Failed to fetch plans');
     return res.json();
 }
+
+// Tasks
+export async function getTasks() {
+    const res = await fetch(`${API_BASE}/save/tasks`);
+    if (!res.ok) throw new Error('Failed to fetch tasks');
+    return res.json();
+}
+
+export async function addTask(taskId: string, title: string, description?: string) {
+    const res = await fetch(`${API_BASE}/save/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, title, description })
+    });
+    if (!res.ok) throw new Error('Failed to add task');
+    return res.json();
+}
+
+export async function toggleTask(taskId: string) {
+    const res = await fetch(`${API_BASE}/save/tasks/${taskId}/toggle`, {
+        method: 'PUT'
+    });
+    if (!res.ok) throw new Error('Failed to toggle task');
+    return res.json();
+}
+
+export async function clearTasks() {
+    const res = await fetch(`${API_BASE}/save/tasks`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to clear tasks');
+    return res.json();
+}
+
+// Calendar activities
+export async function getCalendarActivities() {
+    const res = await fetch(`${API_BASE}/save/calendar-activities`);
+    if (!res.ok) throw new Error('Failed to fetch activities');
+    return res.json();
+}
+
+export async function addCalendarActivity(eventId: string, title: string, start: string, end: string) {
+    const res = await fetch(`${API_BASE}/save/calendar-activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, title, start, end })
+    });
+    if (!res.ok) throw new Error('Failed to add activity');
+    return res.json();
+}
+
+

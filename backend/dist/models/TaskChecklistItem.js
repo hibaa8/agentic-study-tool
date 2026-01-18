@@ -33,20 +33,15 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const mongoController = __importStar(require("../controllers/mongoController"));
-const router = (0, express_1.Router)();
-router.post('/plan', mongoController.savePlan);
-router.post('/summary', mongoController.saveSummary);
-router.post('/learning-session', mongoController.saveLearningSession);
-router.get('/learning-sessions', mongoController.getLearningSessions);
-router.get('/plans', mongoController.getSavedPlans);
-// Task checklist
-router.get('/tasks', mongoController.getTasks);
-router.post('/tasks', mongoController.addTask);
-router.delete('/tasks', mongoController.clearTasks);
-router.put('/tasks/:taskId/toggle', mongoController.toggleTask);
-// Calendar activities
-router.get('/calendar-activities', mongoController.getCalendarActivities);
-router.post('/calendar-activities', mongoController.addCalendarActivity);
-exports.default = router;
+exports.TaskChecklistItem = void 0;
+const mongoose_1 = __importStar(require("mongoose"));
+const TaskChecklistItemSchema = new mongoose_1.Schema({
+    userId: { type: String, required: true },
+    taskId: { type: String, required: true, unique: true },
+    title: { type: String, required: true },
+    description: { type: String },
+    completed: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    completedAt: { type: Date },
+});
+exports.TaskChecklistItem = mongoose_1.default.model('TaskChecklistItem', TaskChecklistItemSchema);
